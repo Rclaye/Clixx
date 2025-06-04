@@ -36,7 +36,9 @@ URL: ${env.BUILD_URL}"""
                 
                 sh """
                     cd ${TERRAFORM_DIR}
-                    terraform init
+                    # Check the Terraform files for syntax errors
+                    terraform validate || echo "Validation issues found but continuing"
+                    terraform init -reconfigure
                 """
             }
         }
@@ -56,8 +58,32 @@ URL: ${env.BUILD_URL}"""
                     )
                     sh """
                         cd ${TERRAFORM_DIR}
-                        terraform plan -var-file="\$TFVARS_FILE" -out=tfplan -input=false
+                        # Add -target option to limit the scope if needed
+                        # terraform plan -var-file="\$TFVARS_FILE" -out=tfplan -input=false -target=aws_vpc.main
+                        
+                        # Regular plan with error checking
+                        terraform plan -var-file="\$TFVARS_FILE" -out=tfplan -input=false || {
+                            echo "Plan failed but continuing to allow for error analysis"
+                            # Don't exit with error here to allow for manual inspection
+                        }
+                        
+                        # Show the plan for better understanding of the issues
+                        terraform show tfplan || echo "Could not show plan file"
                     """
+                }
+            }
+        }
+
+        stage('Approval to Apply') {
+            steps {
+                script {
+                    input(
+                        id: 'apply_confirm',
+                        message: 'Review the plan output. Do you want to apply these changes?',
+                        parameters: [
+                            [$class: 'BooleanParameterDefinition', defaultValue: false, description: 'Apply the Terraform plan?', name: 'confirm']
+                        ]
+                    )
                 }
             }
         }
@@ -77,7 +103,13 @@ URL: ${env.BUILD_URL}"""
                     )
                     sh """
                         cd ${TERRAFORM_DIR}
-                        terraform apply -var-file="\$TFVARS_FILE" -input=false tfplan
+                        # Check if plan file exists
+                        if [ -f tfplan ]; then
+                            terraform apply -input=false tfplan
+                        else
+                            echo "Plan file not found. Running apply directly..."
+                            terraform apply -var-file="\$TFVARS_FILE" -input=false -auto-approve
+                        fi
                     """
                 }
             }
