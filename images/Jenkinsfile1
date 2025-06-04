@@ -4,11 +4,6 @@ pipeline {
     environment {
         PATH = "${PATH}:${getTerraformPath()}"
         TERRAFORM_DIR = "Clixx"
-        // Add these environment variables for non-interactive terraform
-        TF_INPUT = "0"
-        TF_IN_AUTOMATION = "1"
-        // S3 backend configuration
-        TF_CLI_ARGS_init = "-backend-config='bucket=vpcbuckstate-rclaye' -backend-config='key=terraform.tfstate' -backend-config='region=us-east-1'"
     }
     
     stages {
@@ -22,41 +17,6 @@ pipeline {
                             [$class: 'BooleanParameterDefinition', defaultValue: false, description: 'Start the Pipeline?', name: 'confirm']
                         ]
                     )
-                }
-            }
-        }
-
-        stage('Check Workspace') {
-            steps {
-                script {
-                    // Display workspace info to help with debugging
-                    sh 'echo "Current directory:"'
-                    sh 'pwd'
-                    sh 'echo "Files in directory:"'
-                    sh 'ls -la'
-                    sh 'echo "Checking if Clixx directory exists:"'
-                    sh '[ -d "Clixx" ] && echo "Clixx directory exists" || echo "Clixx directory NOT FOUND"'
-                    
-                    // Display the backend.tf file content in the Clixx directory
-                    sh '''
-                        echo "Checking backend.tf configuration in the Clixx directory:"
-                        if [ -f "Clixx/backend.tf" ]; then
-                            echo "Backend.tf file found in Clixx directory:"
-                            cat "Clixx/backend.tf"
-                            echo ""
-                        else
-                            echo "Backend.tf file NOT FOUND in Clixx directory"
-                        fi
-                        
-                        echo "Checking backend.tf configuration in the root directory:"
-                        if [ -f "backend.tf" ]; then
-                            echo "Backend.tf file found in root directory:"
-                            cat "backend.tf"
-                            echo ""
-                        else
-                            echo "Backend.tf file NOT FOUND in root directory"
-                        fi
-                    '''
                 }
             }
         }
@@ -76,12 +36,7 @@ URL: ${env.BUILD_URL}"""
                 
                 sh """
                     cd ${TERRAFORM_DIR}
-                    # Remove local state files to ensure we're using the S3 state
-                    rm -f terraform.tfstate terraform.tfstate.backup
-                    # Initialize terraform with force-copy flag
-                    terraform init -force-copy
-                    # List files to verify state files were removed
-                    ls -la
+                    terraform init
                 """
             }
         }
@@ -211,7 +166,7 @@ URL: ${env.BUILD_URL}"""
                         channel: '#stackjenkins',
                         color: '#C0392B',
                         message: """TERRAFORM DESTROY FAILED
-User: RichardC
+User: RCLAYE
 Job: ${env.JOB_NAME} [${env.BUILD_NUMBER}]
 Time: ${new Date().format("HH:mm:ss")}
 Status: Failed to remove infrastructure
