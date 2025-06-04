@@ -4,6 +4,9 @@ pipeline {
     environment {
         PATH = "${PATH}:${getTerraformPath()}"
         TERRAFORM_DIR = "Clixx"
+        // Environment variables for non-interactive terraform
+        TF_INPUT = "0"
+        TF_IN_AUTOMATION = "1"
     }
     
     stages {
@@ -48,10 +51,17 @@ Time: ${new Date().format("HH:mm:ss")}
 URL: ${env.BUILD_URL}"""
                 )
                 
-                // Remove local state files before init to avoid conflicts with S3 backend
+                // Force copy approach - works in CI/CD environments
                 sh """
                     cd ${TERRAFORM_DIR}
-                    terraform init -migrate-state
+                    # Detect if we have state files
+                    if [ -f "terraform.tfstate" ]; then
+                        # Use force-copy to automatically answer "yes" to migrate state
+                        terraform init -force-copy
+                    else
+                        # No local state, normal init is fine
+                        terraform init
+                    fi
                 """
             }
         }
