@@ -4,9 +4,11 @@ pipeline {
     environment {
         PATH = "${PATH}:${getTerraformPath()}"
         TERRAFORM_DIR = "Clixx"
-        // Environment variables for non-interactive terraform
+        // Add these environment variables for non-interactive terraform
         TF_INPUT = "0"
         TF_IN_AUTOMATION = "1"
+        // S3 backend configuration
+        TF_CLI_ARGS_init = "-backend-config='bucket=vpcbuckstate-rclaye' -backend-config='key=terraform.tfstate' -backend-config='region=us-east-1'"
     }
     
     stages {
@@ -34,6 +36,27 @@ pipeline {
                     sh 'ls -la'
                     sh 'echo "Checking if Clixx directory exists:"'
                     sh '[ -d "Clixx" ] && echo "Clixx directory exists" || echo "Clixx directory NOT FOUND"'
+                    
+                    // Display the backend.tf file content in the Clixx directory
+                    sh '''
+                        echo "Checking backend.tf configuration in the Clixx directory:"
+                        if [ -f "Clixx/backend.tf" ]; then
+                            echo "Backend.tf file found in Clixx directory:"
+                            cat "Clixx/backend.tf"
+                            echo ""
+                        else
+                            echo "Backend.tf file NOT FOUND in Clixx directory"
+                        fi
+                        
+                        echo "Checking backend.tf configuration in the root directory:"
+                        if [ -f "backend.tf" ]; then
+                            echo "Backend.tf file found in root directory:"
+                            cat "backend.tf"
+                            echo ""
+                        else
+                            echo "Backend.tf file NOT FOUND in root directory"
+                        fi
+                    '''
                 }
             }
         }
@@ -51,17 +74,14 @@ Time: ${new Date().format("HH:mm:ss")}
 URL: ${env.BUILD_URL}"""
                 )
                 
-                // Force copy approach - works in CI/CD environments
                 sh """
                     cd ${TERRAFORM_DIR}
-                    # Detect if we have state files
-                    if [ -f "terraform.tfstate" ]; then
-                        # Use force-copy to automatically answer "yes" to migrate state
-                        terraform init -force-copy
-                    else
-                        # No local state, normal init is fine
-                        terraform init
-                    fi
+                    # Remove local state files to ensure we're using the S3 state
+                    rm -f terraform.tfstate terraform.tfstate.backup
+                    # Initialize terraform with force-copy flag
+                    terraform init -force-copy
+                    # List files to verify state files were removed
+                    ls -la
                 """
             }
         }
