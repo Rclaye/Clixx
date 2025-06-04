@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         PATH = "${PATH}:${getTerraformPath()}"
-        TERRAFORM_DIR = "Clixx"  // Updated to your new directory name
+        TERRAFORM_DIR = "Clixx"
     }
     
     stages {
@@ -47,6 +47,8 @@ Job: ${env.JOB_NAME} [${env.BUILD_NUMBER}]
 Time: ${new Date().format("HH:mm:ss")}
 URL: ${env.BUILD_URL}"""
                 )
+                
+                // Remove local state files before init to avoid conflicts with S3 backend
                 sh """
                     cd ${TERRAFORM_DIR}
                     terraform init -migrate-state
