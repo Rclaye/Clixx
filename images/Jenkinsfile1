@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         PATH = "${PATH}:${getTerraformPath()}"
-        TERRAFORM_DIR = "Clixx"
+        TERRAFORM_DIR = "Clixx"  // Updated to your new directory name
     }
     
     stages {
@@ -17,6 +17,20 @@ pipeline {
                             [$class: 'BooleanParameterDefinition', defaultValue: false, description: 'Start the Pipeline?', name: 'confirm']
                         ]
                     )
+                }
+            }
+        }
+
+        stage('Check Workspace') {
+            steps {
+                script {
+                    // Display workspace info to help with debugging
+                    sh 'echo "Current directory:"'
+                    sh 'pwd'
+                    sh 'echo "Files in directory:"'
+                    sh 'ls -la'
+                    sh 'echo "Checking if Clixx directory exists:"'
+                    sh '[ -d "Clixx" ] && echo "Clixx directory exists" || echo "Clixx directory NOT FOUND"'
                 }
             }
         }
