@@ -138,7 +138,11 @@ resource "aws_launch_template" "clixx_app_secondary" {
     aws_lb.clixx_alb,
     aws_efs_file_system.clixx_efs,
     aws_efs_mount_target.clixx_mount_target,
-    aws_security_group.ec2_sg
+    aws_security_group.ec2_sg,
+    aws_ssm_parameter.db_name,
+    aws_ssm_parameter.db_user,
+    aws_ssm_parameter.db_password,
+    aws_ssm_parameter.rds_endpoint
   ]
 }
 
