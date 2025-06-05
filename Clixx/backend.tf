@@ -1,8 +1,7 @@
-terraform{
-    backend "s3"{
-        bucket= "vpcbuckstate-rclaye"
-        key = "terraform.tfstate"
-        region="us-east-1"
-        #use_lockfile = true
-        }
+terraform {
+    backend "s3" {
+        bucket = "vpcbuckstate-rclaye"
+        key    = "terraform.tfstate"
+        region = "us-east-1"
+    }
 }
